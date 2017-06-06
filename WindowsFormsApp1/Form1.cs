@@ -156,8 +156,7 @@ namespace WindowsFormsApp1
             //progB.Maximum = 100;
             //progB.Step = 1;
             //progB.Value = 0;
-            // backgroundWorker.RunWorkerAsync();
-            ////
+            // backgroundWorker.RunWorkerAsync();            
 
             try
             {

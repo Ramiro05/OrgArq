@@ -14,7 +14,7 @@ namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
     {
-        int[] memoria = new int[255];
+        int[] memoria = new int[256];
         int dTag, dLinha, mTag, mLinha, mPalavra;
 
         public Form1()
@@ -151,7 +151,8 @@ namespace WindowsFormsApp1
         {
             int[,] cache = new int[Convert.ToInt32(txtCacheL.Text), Convert.ToInt32(txtCacheP.Text) + 2];
             int maskTag, maskLinha, maskPalavra;
-            
+            int miss = 0, hit = 0;
+
             //Convert.ToInt32(txtCacheL.Text)
             //progB.Maximum = 100;
             //progB.Step = 1;
@@ -162,21 +163,46 @@ namespace WindowsFormsApp1
             {
                 StreamReader rd = new StreamReader(System.Environment.CurrentDirectory.ToString() + "\\Enderecos.txt");
                 string linhaArq = null;
+                int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
 
                 while ((linhaArq = rd.ReadLine()) != null)
                 {
                     int endInt = Int32.Parse(linhaArq.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
-                    
+                    bool deuHit = false;
+
                     maskTag = (endInt & mTag) >> dTag;
                     maskLinha = (endInt & mLinha) >> dLinha;
                     maskPalavra = (endInt & mPalavra);
 
-                    
+                    if (cache[maskLinha, 0] == 0)
+                    {
+                        cache[maskLinha, 0] = 1;
+                        miss++;
+                        outBloco = getBloco(endInt);
 
+                        for (int i = 2; i < cache.GetLength(1); i++)
+                            cache[maskLinha, i] = outBloco[i - 2];
+                    }
+                    else
+                    {
+                        for (int i = 2; i < cache.GetLength(1); i++)
+                        {
+                            if (cache[maskLinha, i] == endInt)
+                            {
+                                deuHit = true;
+                                hit++;
+                            }
+                        }
 
+                        if (!deuHit)
+                        {
+                            miss++;
+                            outBloco = getBloco(endInt);
 
-
-
+                            for (int x = 2; x < cache.GetLength(1); x++)
+                                cache[maskLinha, x] = outBloco[x - 2];
+                        }                        
+                    }
                 }
                 rd.Close();
             }
@@ -184,36 +210,42 @@ namespace WindowsFormsApp1
             {
                 Console.WriteLine("Erro ao executar Leitura do Arquivo");
             }
+
+            lbResult.Text = "Miss: " + miss + " - Hit: " + hit;
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            for (int i = 0; i < 255; i++)
+            for (int i = 0; i < 256; i++)
                 memoria[i] = i;
         }
 
         private int[] getBloco(int end)
         {
-            int[] outBloco = new int[8];
+            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
             int cont = 0;
             bool hit = false;
 
             for (int i = 0; i < memoria.Length; i++)
             {
-                if (cont < 8)
+                if (cont < outBloco.Length)
                 {
                     outBloco[cont] = memoria[i];
-                
-                    if (outBloco[cont] == end )
+
+                    if (outBloco[cont] == end)
                         hit = true;
 
                     cont++;
                 }
-                else 
+                else
+                {                    
                     cont = 0;
+                    outBloco[cont] = memoria[i];
+                    cont++;
+                }
 
-                if (cont == 8 && hit)
-                    break;                
+                if (cont == outBloco.Length && hit)
+                    break;
             }
             return outBloco;
         }

@@ -150,8 +150,9 @@ namespace WindowsFormsApp1
         private void btnExec_Click(object sender, EventArgs e)
         {
             int[,] cache = new int[Convert.ToInt32(txtCacheL.Text), Convert.ToInt32(txtCacheP.Text) + 2];
+            int[] memAss = new int[Convert.ToInt32(txtCacheL.Text)];
             int maskTag, maskLinha, maskPalavra;
-            int miss = 0, hit = 0;
+
 
             //Convert.ToInt32(txtCacheL.Text)
             //progB.Maximum = 100;
@@ -163,46 +164,21 @@ namespace WindowsFormsApp1
             {
                 StreamReader rd = new StreamReader(System.Environment.CurrentDirectory.ToString() + "\\Enderecos.txt");
                 string linhaArq = null;
-                int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
+
 
                 while ((linhaArq = rd.ReadLine()) != null)
                 {
                     int endInt = Int32.Parse(linhaArq.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
-                    bool deuHit = false;
+
 
                     maskTag = (endInt & mTag) >> dTag;
                     maskLinha = (endInt & mLinha) >> dLinha;
                     maskPalavra = (endInt & mPalavra);
 
-                    if (cache[maskLinha, 0] == 0)
-                    {
-                        cache[maskLinha, 0] = 1;
-                        miss++;
-                        outBloco = getBloco(endInt);
-
-                        for (int i = 2; i < cache.GetLength(1); i++)
-                            cache[maskLinha, i] = outBloco[i - 2];
-                    }
-                    else
-                    {
-                        for (int i = 2; i < cache.GetLength(1); i++)
-                        {
-                            if (cache[maskLinha, i] == endInt)
-                            {
-                                deuHit = true;
-                                hit++;
-                            }
-                        }
-
-                        if (!deuHit)
-                        {
-                            miss++;
-                            outBloco = getBloco(endInt);
-
-                            for (int x = 2; x < cache.GetLength(1); x++)
-                                cache[maskLinha, x] = outBloco[x - 2];
-                        }                        
-                    }
+                    if (txtTipo.Text == "D")
+                        mapDireto(maskLinha, cache, endInt);
+                    else if (txtTipo.Text == "A")
+                        mapAssociativo(maskTag, cache, endInt);
                 }
                 rd.Close();
             }
@@ -211,7 +187,6 @@ namespace WindowsFormsApp1
                 Console.WriteLine("Erro ao executar Leitura do Arquivo");
             }
 
-            lbResult.Text = "Miss: " + miss + " - Hit: " + hit;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -238,7 +213,7 @@ namespace WindowsFormsApp1
                     cont++;
                 }
                 else
-                {                    
+                {
                     cont = 0;
                     outBloco[cont] = memoria[i];
                     cont++;
@@ -249,20 +224,90 @@ namespace WindowsFormsApp1
             }
             return outBloco;
         }
+
+        private void mapDireto(int maskLinha, int[,] cache, int endInt)
+        {
+            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
+            int miss = 0, hit = 0;
+            bool deuHit = false;
+
+            if (cache[maskLinha, 0] == 0)
+            {
+                cache[maskLinha, 0] = 1;
+                miss++;
+                outBloco = getBloco(endInt);
+
+                for (int i = 2; i < cache.GetLength(1); i++)
+                    cache[maskLinha, i] = outBloco[i - 2];
+            }
+            else
+            {
+                for (int i = 2; i < cache.GetLength(1); i++)
+                {
+                    if (cache[maskLinha, i] == endInt)
+                    {
+                        deuHit = true;
+                        hit++;
+                    }
+                }
+
+                if (!deuHit)
+                {
+                    miss++;
+                    outBloco = getBloco(endInt);
+
+                    for (int x = 2; x < cache.GetLength(1); x++)
+                        cache[maskLinha, x] = outBloco[x - 2];
+                }
+            }
+
+            lbResult.Text = "Miss: " + miss + " - Hit: " + hit;
+        }
+
+        private void mapAssociativo(int maskTag, int[,] cache, int endInt)
+        {
+            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)], vetCont = new int[Convert.ToInt32(txtCacheL.Text)];
+            int miss = 0, hit = 0;
+            bool deuHit = false;
+
+            for (int i = 0; i < vetCont.Length; i++)
+                vetCont[i] = 0;
+
+            for (int i = 0; i < cache.GetLength(0); i++)
+            {
+                if (cache[i, 1] == null)
+                {
+                    cache[i, 1] = maskTag;
+                    miss++;
+                    outBloco = getBloco(endInt);
+
+                    vetCont[i]++;
+
+                    for (int x = 2; x < cache.GetLength(1); x++)
+                        cache[i, x] = outBloco[x - 2];
+                }
+                else
+                {
+
+                    if (cache[i, 2] == maskTag)
+                    {
+                        vetCont[i]++;
+
+                        hit++;
+                    }
+
+                    else //politica de substituição
+                    {
+                        //miss++;
+                        //outBloco = getBloco(endInt);
+
+                        //for (int x = 2; x < cache.GetLength(1); x++)
+                        //    cache[i, x] = outBloco[i - 2];
+                    }
+                }
+            }
+        }
     }
 }
-//falta fazer
-//cache
-//contador de hit & miss
-//relatorio
-
-
-//for para percorrer as linhas
-//verificar se o verificador é 0 ou 1 [linhas, 0]
-//verificar se a linha batem, se sim
-
-//    verificar a tag, se sim é hit(break)
-
-//    se nao busca na memoria
-
+//
 

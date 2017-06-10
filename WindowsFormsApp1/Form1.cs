@@ -267,6 +267,7 @@ namespace WindowsFormsApp1
         private void mapAssociativo(int maskTag, int[,] cache, int endInt)
         {
             int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
+            bool achou = false;
 
             for (int i = 0; i < cache.GetLength(0); i++)
             {
@@ -281,6 +282,7 @@ namespace WindowsFormsApp1
                     for (int x = 2; x < cache.GetLength(1); x++)
                         cache[i, x] = outBloco[x - 2];
 
+                    achou = true;
                     break;
                 }
                 else
@@ -289,29 +291,32 @@ namespace WindowsFormsApp1
                     {
                         cache[i, 0]++;
                         hit++;
+                        achou = true;
                         break;
                     }
                 }
             }
 
             //politica de substituição
-
-            int val = 0, menor = cache[0, 0];
-
-            for (int z = 1; z < cache.GetLength(0); z++)
+            if (!achou)
             {
-                if (cache[z, 0] < menor)
+                int val = 0, menor = cache[0, 0];
+
+                for (int z = 1; z < cache.GetLength(0); z++)
                 {
-                    menor = cache[z, 0];
-                    val = z;
+                    if (cache[z, 0] < menor)
+                    {
+                        menor = cache[z, 0];
+                        val = z;
+                    }
                 }
+
+                miss++;
+                outBloco = getBloco(endInt);
+
+                for (int x = 2; x < cache.GetLength(1); x++)
+                    cache[val, x] = outBloco[x - 2];
             }
-
-            miss++;
-            outBloco = getBloco(endInt);
-
-            for (int x = 2; x < cache.GetLength(1); x++)
-                cache[val, x] = outBloco[x-2];            
         }
     }
 }

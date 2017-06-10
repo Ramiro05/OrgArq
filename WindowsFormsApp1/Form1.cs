@@ -16,10 +16,14 @@ namespace WindowsFormsApp1
     {
         int[] memoria = new int[256];
         int dTag, dLinha, mTag, mLinha, mPalavra;
+        int miss = 0, hit = 0;
 
         public Form1()
         {
             InitializeComponent();
+
+            for (int i = 0; i < 256; i++)
+                memoria[i] = i;
         }
 
         private void rd0_CheckedChanged(object sender, EventArgs e)
@@ -149,9 +153,13 @@ namespace WindowsFormsApp1
 
         private void btnExec_Click(object sender, EventArgs e)
         {
+            miss = 0; hit = 0;
             int[,] cache = new int[Convert.ToInt32(txtCacheL.Text), Convert.ToInt32(txtCacheP.Text) + 2];
-            int[] memAss = new int[Convert.ToInt32(txtCacheL.Text)];
-            int maskTag, maskLinha, maskPalavra;
+
+            for (int i = 0; i < cache.GetLength(0); i++)
+                cache[i, 1] = -1;
+
+            int maskTag, maskLinha; // maskPalavra; sem uso
 
 
             //Convert.ToInt32(txtCacheL.Text)
@@ -170,10 +178,9 @@ namespace WindowsFormsApp1
                 {
                     int endInt = Int32.Parse(linhaArq.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
 
-
                     maskTag = (endInt & mTag) >> dTag;
                     maskLinha = (endInt & mLinha) >> dLinha;
-                    maskPalavra = (endInt & mPalavra);
+                    //maskPalavra = (endInt & mPalavra); sem uso
 
                     if (txtTipo.Text == "D")
                         mapDireto(maskLinha, cache, endInt);
@@ -181,19 +188,15 @@ namespace WindowsFormsApp1
                         mapAssociativo(maskTag, cache, endInt);
                 }
                 rd.Close();
+
+                lbResult.Text = "Miss: " + miss + " - Hit: " + hit;
             }
             catch
             {
                 Console.WriteLine("Erro ao executar Leitura do Arquivo");
             }
 
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            for (int i = 0; i < 256; i++)
-                memoria[i] = i;
-        }
+        }        
 
         private int[] getBloco(int end)
         {
@@ -227,8 +230,7 @@ namespace WindowsFormsApp1
 
         private void mapDireto(int maskLinha, int[,] cache, int endInt)
         {
-            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
-            int miss = 0, hit = 0;
+            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];            
             bool deuHit = false;
 
             if (cache[maskLinha, 0] == 0)
@@ -259,53 +261,57 @@ namespace WindowsFormsApp1
                     for (int x = 2; x < cache.GetLength(1); x++)
                         cache[maskLinha, x] = outBloco[x - 2];
                 }
-            }
-
-            lbResult.Text = "Miss: " + miss + " - Hit: " + hit;
+            }            
         }
 
         private void mapAssociativo(int maskTag, int[,] cache, int endInt)
         {
-            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)], vetCont = new int[Convert.ToInt32(txtCacheL.Text)];
-            int miss = 0, hit = 0;
-            bool deuHit = false;
-
-            for (int i = 0; i < vetCont.Length; i++)
-                vetCont[i] = 0;
+            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
 
             for (int i = 0; i < cache.GetLength(0); i++)
             {
-                if (cache[i, 1] == null)
+                if (cache[i, 1] < 0)
                 {
                     cache[i, 1] = maskTag;
                     miss++;
                     outBloco = getBloco(endInt);
 
-                    vetCont[i]++;
+                    cache[i, 0]++;
 
                     for (int x = 2; x < cache.GetLength(1); x++)
                         cache[i, x] = outBloco[x - 2];
+
+                    break;
                 }
                 else
                 {
-
-                    if (cache[i, 2] == maskTag)
+                    if (cache[i, 1] == maskTag)
                     {
-                        vetCont[i]++;
-
+                        cache[i, 0]++;
                         hit++;
-                    }
-
-                    else //politica de substituição
-                    {
-                        //miss++;
-                        //outBloco = getBloco(endInt);
-
-                        //for (int x = 2; x < cache.GetLength(1); x++)
-                        //    cache[i, x] = outBloco[i - 2];
+                        break;
                     }
                 }
             }
+
+            //politica de substituição
+
+            int val = 0, menor = cache[0, 0];
+
+            for (int z = 1; z < cache.GetLength(0); z++)
+            {
+                if (cache[z, 0] < menor)
+                {
+                    menor = cache[z, 0];
+                    val = z;
+                }
+            }
+
+            miss++;
+            outBloco = getBloco(endInt);
+
+            for (int x = 2; x < cache.GetLength(1); x++)
+                cache[val, x] = outBloco[x-2];            
         }
     }
 }

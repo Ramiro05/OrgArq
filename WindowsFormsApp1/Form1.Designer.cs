@@ -332,7 +332,6 @@
             this.MinimumSize = new System.Drawing.Size(485, 686);
             this.Name = "Form1";
             this.Text = "Trabalho 3 - Organização e Arquitetura de Computadores";
-            this.Load += new System.EventHandler(this.Form1_Load);
             this.pnlResult.ResumeLayout(false);
             this.pnlResult.PerformLayout();
             this.gbox.ResumeLayout(false);

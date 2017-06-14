@@ -8,23 +8,28 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.ComponentModel;
 
 namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
     {
+        //declarações de escopo global
         int[] memoria = new int[256];
-        int dTag, dLinha, mTag, mLinha, mPalavra;
+        int dTag, dLinha, mTag, mLinha;
         int miss = 0, hit = 0;
+        private Timer time = new Timer();
+        private Timer time2 = new Timer();
 
         public Form1()
         {
             InitializeComponent();
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < 256; i++) //cria a estrutura de memoria
                 memoria[i] = i;
         }
+
+        //carrega os parametros de entrada acordo com a opção selecionada
+        #region - Parametros de entrada
 
         private void rd0_CheckedChanged(object sender, EventArgs e)
         {
@@ -41,7 +46,7 @@ namespace WindowsFormsApp1
                 mLinha = 24;
 
                 txtPalavra.Text = "3";
-                mPalavra = 7;
+                //mPalavra = 7;
 
                 txtCacheL.Text = "4";
                 txtCacheP.Text = "8";
@@ -62,7 +67,7 @@ namespace WindowsFormsApp1
                 mLinha = 28;
 
                 txtPalavra.Text = "2";
-                mPalavra = 3;
+                //mPalavra = 3;
 
                 txtCacheL.Text = "8";
                 txtCacheP.Text = "4";
@@ -84,7 +89,7 @@ namespace WindowsFormsApp1
                 mLinha = 30;
 
                 txtPalavra.Text = "1";
-                mPalavra = 1;
+                //mPalavra = 1;
 
                 txtCacheL.Text = "16";
                 txtCacheP.Text = "2";
@@ -104,7 +109,7 @@ namespace WindowsFormsApp1
                 txtLinha.Text = "-";
 
                 txtPalavra.Text = "3";
-                mPalavra = 7;
+                //mPalavra = 7;
 
                 txtCacheL.Text = "4";
                 txtCacheP.Text = "8";
@@ -124,7 +129,7 @@ namespace WindowsFormsApp1
                 txtLinha.Text = "-";
 
                 txtPalavra.Text = "2";
-                mPalavra = 3;
+                //mPalavra = 3;
 
                 txtCacheL.Text = "8";
                 txtCacheP.Text = "4";
@@ -144,29 +149,24 @@ namespace WindowsFormsApp1
                 txtLinha.Text = "-";
 
                 txtPalavra.Text = "1";
-                mPalavra = 1;
+                //mPalavra = 1;
 
                 txtCacheL.Text = "16";
                 txtCacheP.Text = "2";
             }
         }
+        #endregion
 
+        //Executa
         private void btnExec_Click(object sender, EventArgs e)
         {
-            miss = 0; hit = 0;
-            int[,] cache = new int[Convert.ToInt32(txtCacheL.Text), Convert.ToInt32(txtCacheP.Text) + 2];
+            miss = 0; hit = 0; //zera os contadores a cada execução
+            int[,] cache = new int[Convert.ToInt32(txtCacheL.Text), Convert.ToInt32(txtCacheP.Text) + 2]; //cria a cache de acordo com os parametros selecionados
 
-            for (int i = 0; i < cache.GetLength(0); i++)
-                cache[i, 1] = -1;
-
-            int maskTag, maskLinha; // maskPalavra; sem uso
-
-
-            //Convert.ToInt32(txtCacheL.Text)
-            //progB.Maximum = 100;
-            //progB.Step = 1;
-            //progB.Value = 0;
-            // backgroundWorker.RunWorkerAsync();            
+            for (int i = 0; i < cache.GetLength(0); i++) //gambi... atribui -1 a cada linha da cache na posição q irá guardar a tag para que 
+                cache[i, 1] = -1;                        //no modo associativo a gente saiba quando o campo tag não foi usado e possa dar o miss direto na primeira vez q for consultado
+                                                         //tivemos mts problemas para usar int?(nullable) e por isso contornamos dessa maneira.
+            int maskTag, maskLinha;
 
             try
             {
@@ -174,14 +174,15 @@ namespace WindowsFormsApp1
                 string linhaArq = null;
 
 
-                while ((linhaArq = rd.ReadLine()) != null)
+                while ((linhaArq = rd.ReadLine()) != null) //percorre o arquivo com os endereços 
                 {
                     int endInt = Int32.Parse(linhaArq.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
 
+                    //bitwise para criar as máscaras
                     maskTag = (endInt & mTag) >> dTag;
                     maskLinha = (endInt & mLinha) >> dLinha;
-                    //maskPalavra = (endInt & mPalavra); sem uso
 
+                    //chama o respectivo metodos de acordo com o parametro de entrada
                     if (txtTipo.Text == "D")
                         mapDireto(maskLinha, cache, endInt);
                     else if (txtTipo.Text == "A")
@@ -196,41 +197,48 @@ namespace WindowsFormsApp1
                 Console.WriteLine("Erro ao executar Leitura do Arquivo");
             }
 
-        }        
+        }
 
+        //Pelo parametro de entrada o método pega da memória o bloco solicitado(de acordo com o numero de palavras parametrizado pela opção selecionada)
         private int[] getBloco(int end)
         {
-            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
+            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)]; // cria o vetor para guardar os blocos de acordo com o parametro de entrada
             int cont = 0;
             bool hit = false;
 
-            for (int i = 0; i < memoria.Length; i++)
+            for (int i = 0; i < memoria.Length; i++) //percorre toda memoria
             {
-                if (cont < outBloco.Length)
+                if (cont < outBloco.Length) //preenche todo o vetor de blocos
                 {
                     outBloco[cont] = memoria[i];
-
-                    if (outBloco[cont] == end)
-                        hit = true;
-
                     cont++;
                 }
                 else
                 {
-                    cont = 0;
-                    outBloco[cont] = memoria[i];
-                    cont++;
+                    for (int x = 0; x < outBloco.Length; x++)//apos preenchido verifica se o endereço solicitado por parametro esta no bloco
+                    {
+                        if (outBloco[x] == end) //se sim da hit
+                            hit = true;
+                    }
+
+                    if (hit)
+                        break; // qnd der hit, para o loop e retorna todo o bloco em q consta o valor
+                    else
+                    {
+                        outBloco[0] = memoria[i]; //se não deu hit, preenche a primeira posição do bloco e continua preenchenco o restante 
+                        cont = 1;                 //do bloco na proxima volta do loop... e assim ate dar hit e retornar o bloco solicitado
+                    }
                 }
 
-                if (cont == outBloco.Length && hit)
-                    break;
             }
             return outBloco;
         }
 
+        //pesquisa e alimenta a cache usando modo direto
         private void mapDireto(int maskLinha, int[,] cache, int endInt)
         {
-            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];            
+            InitializeTimer();
+            int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
             bool deuHit = false;
 
             if (cache[maskLinha, 0] == 0)
@@ -261,23 +269,28 @@ namespace WindowsFormsApp1
                     for (int x = 2; x < cache.GetLength(1); x++)
                         cache[maskLinha, x] = outBloco[x - 2];
                 }
-            }            
+            }
         }
 
+        //pesquisa e alimenta a cache usando modo associativo
         private void mapAssociativo(int maskTag, int[,] cache, int endInt)
         {
+            InitializeTimer();
             int[] outBloco = new int[Convert.ToInt32(txtCacheP.Text)];
             bool achou = false;
 
-            for (int i = 0; i < cache.GetLength(0); i++)
+            for (int i = 0; i < cache.GetLength(0); i++)//percorre todas as linhas da cache
             {
-                if (cache[i, 1] < 0)
+                if (cache[i, 1] < 0)//continuação daquela gambi... verifica se a tag nunca foi acessada
                 {
-                    cache[i, 1] = maskTag;
+                    cache[i, 1] = maskTag;//se não atribui o bloco nessa linha
                     miss++;
                     outBloco = getBloco(endInt);
 
-                    cache[i, 0]++;
+                    if (cache[i, 0] < 150) //incrementa o contador de acessos da LRU ou zera qnd chegar em 150 acessos
+                        cache[i, 0]++;
+                    else
+                        cache[i, 0] = 0;
 
                     for (int x = 2; x < cache.GetLength(1); x++)
                         cache[i, x] = outBloco[x - 2];
@@ -287,22 +300,29 @@ namespace WindowsFormsApp1
                 }
                 else
                 {
-                    if (cache[i, 1] == maskTag)
+                    if (cache[i, 1] == maskTag)//se ja consta alguma tag para essa linha, verifica se é a tag q esta sendo solicitada
                     {
-                        cache[i, 0]++;
-                        hit++;
+                        hit++;   //se for, deu hit
                         achou = true;
+
+                        if (cache[i, 0] < 150)//incrementa o contador de acessos da LRU ou zera qnd chegar em 150 acessos
+                            cache[i, 0]++;
+                        else
+                            cache[i, 0] = 0;
+
+
                         break;
                     }
                 }
             }
 
-            //politica de substituição
-            if (!achou)
+            //politica de substituição - LRU
+
+            if (!achou)//Se todas as linhas ja foram preenchidas com tags e não deu hit utiliza a politica de substituição
             {
                 int val = 0, menor = cache[0, 0];
 
-                for (int z = 1; z < cache.GetLength(0); z++)
+                for (int z = 1; z < cache.GetLength(0); z++)//percorre as linhas da cache e guarda a linha q tem menor contador de acessos
                 {
                     if (cache[z, 0] < menor)
                     {
@@ -312,13 +332,45 @@ namespace WindowsFormsApp1
                 }
 
                 miss++;
-                outBloco = getBloco(endInt);
+                outBloco = getBloco(endInt);//traz o bloco solicitado
 
-                for (int x = 2; x < cache.GetLength(1); x++)
+                cache[val, 0] = 1;
+                cache[val, 1] = maskTag;
+                for (int x = 2; x < cache.GetLength(1); x++)//inseri o bloco na linha de menos acesso;
                     cache[val, x] = outBloco[x - 2];
             }
         }
+
+        //ProgressBar
+        #region - ProgressBar
+
+        private void InitializeTimer()
+        {
+            time.Interval = 250;
+            time.Tick += new EventHandler(IncreaseProgressBar);
+            time.Start();
+        }
+
+        private void IncreaseProgressBar(object sender, EventArgs e)
+        {
+            progB.Increment(1);
+
+            if (progB.Value == progB.Maximum)
+            {
+                time2.Interval = 550;
+                time2.Tick += new EventHandler(ClearProgressBar);
+                time2.Start();
+                time.Stop();
+            }
+        }
+
+        private void ClearProgressBar(object sender, EventArgs e)
+        {            
+            progB.Value = 0;
+            time2.Stop();
+        }
+
+        #endregion
     }
 }
-//
 
